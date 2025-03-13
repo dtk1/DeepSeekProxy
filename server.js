@@ -1,14 +1,13 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
-import dotenv from "dotenv";
+const express = require("express");
+const fetch = require("node-fetch");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
 dotenv.config();
 const app = express();
 app.use(express.json());
-app.use(cors()); // Разрешаем запросы с фронтенда
+app.use(cors());
 
-// Прокси-запрос к DeepSeek API
 app.post("/deepseek", async (req, res) => {
     try {
         const response = await fetch("https://api.deepseek.com/v1/completions", {
@@ -23,7 +22,7 @@ app.post("/deepseek", async (req, res) => {
         const data = await response.json();
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: "Ошибка запроса к DeepSeek" });
+        res.status(500).json({ error: "Ошибка запроса" });
     }
 });
 
