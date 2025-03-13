@@ -1,3 +1,16 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+const app = express();
+
+// 🔥 Разрешаем CORS для всех доменов
+app.use(cors());
+
+// Разрешаем обработку JSON-запросов
+app.use(express.json());
+
 app.post("/deepseek", async (req, res) => {
     try {
         const { notes, numFlashcards } = req.body;
@@ -21,3 +34,6 @@ app.post("/deepseek", async (req, res) => {
         res.status(500).json({ error: "Failed to connect to DeepSeek API" });
     }
 });
+
+// Запускаем сервер
+app.listen(3000, () => console.log("✅ Server is running on port 3000"));
