@@ -45,25 +45,28 @@ app.post("/deepseek", async (req, res) => {
         if (!data.choices || !data.choices[0]?.message?.content) {
             throw new Error("Invalid response from DeepSeek API");
         }
-        console.log("🔹 Raw DeepSeek API Response:", JSON.stringify(data, null, 2));
+
         let parsedResponse;
         try {
-            parsedResponse = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+            parsedResponse = JSON.parse(data.choices[0].message.content || "{}");
         } catch (parseError) {
             console.error("❌ JSON Parsing Error:", parseError);
             return res.status(500).json({ error: "Invalid JSON from DeepSeek API" });
         }
-        
-        // 🔥 Проверяем, есть ли массив flashcards
-        if (!parsedResponse.flashcards || !Array.isArray(parsedResponse.flashcards)) {
-            console.error("❌ DeepSeek API did not return a valid flashcards array. Response:", parsedResponse);
-            return res.status(500).json({ error: "DeepSeek did not return a valid flashcards array" });
-        }
-        if (!parsedResponse.flashcards || !Array.isArray(parsedResponse.flashcards)) {
-            throw new Error("DeepSeek did not return a valid flashcards array");
+
+        // ✅ Исправлено: Теперь ожидаем `questions`, а не `flashcards`
+        if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+            console.error("❌ DeepSeek API response does not contain a valid questions array:", parsedResponse);
+            return res.status(500).json({ error: "DeepSeek API did not return a valid questions array" });
         }
 
-        res.json({ success: true, flashcards: parsedResponse.flashcards });
+        // ✅ Преобразуем `questions` в `flashcards`
+        const flashcards = parsedResponse.questions.map(q => ({
+            question: q.question,
+            answer: q.answer
+        }));
+
+        res.json({ success: true, flashcards });
 
     } catch (error) {
         console.error("❌ Server error:", error);
