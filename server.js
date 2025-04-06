@@ -96,6 +96,8 @@ app.post("/deepseek", async (req, res) => {
     }
 });
 
+
+
 // ✅ Route for Generating Quiz Questions
 app.post("/generate-quiz", async (req, res) => {
     try {
@@ -226,6 +228,27 @@ app.post("/generate-quiz", async (req, res) => {
 app.get("/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+app.post("/delete-collection", async (req, res) => {
+    try {
+        const collectionId = req.query.id;
+
+        if (!collectionId) {
+            return res.status(400).json({ error: "Collection ID is required" });
+        }
+
+        console.log(`🗑️ Deleting collection with ID: ${collectionId}`);
+
+        // TODO: Здесь ты добавишь удаление из базы данных
+        // Например: await CollectionModel.deleteOne({ _id: collectionId });
+
+        res.json({ success: true, message: `Collection ${collectionId} deleted` });
+    } catch (error) {
+        console.error("❌ Error deleting collection:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
