@@ -5,8 +5,12 @@ import fetch from "node-fetch";
 
 dotenv.config();
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:3000', // <-- указываем фронт
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+  app.use(express.json());
 
 // ✅ Route for Flashcards
 app.post("/deepseek", async (req, res) => {
