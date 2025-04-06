@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Route for Flashcards (already added)
+// ✅ Route for Flashcards
 app.post("/deepseek", async (req, res) => {
     try {
         const { notes, numFlashcards } = req.body;
@@ -35,13 +35,20 @@ app.post("/deepseek", async (req, res) => {
                     },
                     { role: "user", content: notes }
                 ],
-                response_format: { type: "json_object" },
                 temperature: 0.5
             }),
         });
 
-        const data = await deepseekResponse.json();
-        console.log("🔹 DeepSeek API Response:", JSON.stringify(data, null, 2));
+        const text = await deepseekResponse.text();
+        console.log("🔹 Raw DeepSeek API Response:", text);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("❌ Failed to parse JSON from DeepSeek:", e);
+            return res.status(500).json({ error: "DeepSeek API returned invalid JSON" });
+        }
 
         if (!data.choices || !data.choices[0]?.message?.content) {
             throw new Error("Invalid response from DeepSeek API");
@@ -73,7 +80,7 @@ app.post("/deepseek", async (req, res) => {
     }
 });
 
-// ✅ New Route for Generating Quiz Questions
+// ✅ Route for Generating Quiz Questions
 app.post("/generate-quiz", async (req, res) => {
     try {
         const { notes, numQuestions } = req.body;
@@ -100,13 +107,20 @@ app.post("/generate-quiz", async (req, res) => {
                     },
                     { role: "user", content: notes }
                 ],
-                response_format: { type: "json_object" },
                 temperature: 0.5
             }),
         });
 
-        const data = await deepseekResponse.json();
-        console.log("🔹 DeepSeek API Response:", JSON.stringify(data, null, 2));
+        const text = await deepseekResponse.text();
+        console.log("🔹 Raw DeepSeek API Response:", text);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("❌ Failed to parse JSON from DeepSeek:", e);
+            return res.status(500).json({ error: "DeepSeek API returned invalid JSON" });
+        }
 
         if (!data.choices || !data.choices[0]?.message?.content) {
             throw new Error("Invalid response from DeepSeek API");
