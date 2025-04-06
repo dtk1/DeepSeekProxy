@@ -68,6 +68,8 @@ app.post("/deepseek", async (req, res) => {
             const questionLine = lines[i];
             const answerLine = lines[i + 1];
 
+            if (!questionLine || !answerLine) continue;
+
             const question = questionLine.replace(/^Question \d+:\s*/, '').trim();
             const answer = answerLine.replace(/^Answer:\s*/, '').trim();
 
@@ -87,13 +89,52 @@ app.post("/deepseek", async (req, res) => {
 // ✅ Route for Generating Quiz Questions
 app.post("/generate-quiz", async (req, res) => {
     try {
-        const { notes, numQuestions } = req.body;
+        const { notes, numQuestions, quizType } = req.body;
 
         if (!notes || typeof numQuestions !== "number" || numQuestions <= 0) {
             return res.status(400).json({ error: "Invalid input" });
         }
 
         console.log("🔹 Sending request to DeepSeek API for quiz...");
+
+        let systemPrompt = `You are an AI assistant that creates quiz questions from educational text.
+                        The user will provide notes, and you must generate exactly ${numQuestions} questions.`;
+        
+        if (quizType === "multiple-choice") {
+            systemPrompt += `
+            Each question should have 4 options with only one correct answer.
+            Format the response as JSON array like:
+            [
+              {
+                "question": "Question text here?",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "answer": "The correct option text"
+              }
+            ]
+            Only return valid JSON, no explanations.`;
+        } else if (quizType === "true-false") {
+            systemPrompt += `
+            Each question should be a true/false statement.
+            Format the response as JSON array like:
+            [
+              {
+                "question": "Statement that is true or false",
+                "answer": "True" or "False"
+              }
+            ]
+            Only return valid JSON, no explanations.`;
+        } else {
+            // Default to open-ended questions
+            systemPrompt += `
+            Format the response as JSON array like:
+            [
+              {
+                "question": "Question text here?",
+                "answer": "The answer text"
+              }
+            ]
+            Only return valid JSON, no explanations.`;
+        }
 
         const deepseekResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
             method: "POST",
@@ -106,14 +147,7 @@ app.post("/generate-quiz", async (req, res) => {
                 messages: [
                     {
                         role: "system",
-                        content: `You are an AI assistant that extracts question-answer pairs from text.
-                        The user will provide educational notes, and you must generate exactly ${numQuestions} question-answer pairs.
-                        Format the response like:
-                        Question 1: ...
-                        Answer: ...
-                        Question 2: ...
-                        Answer: ...
-                        Only return the list, no explanations.`
+                        content: systemPrompt
                     },
                     { role: "user", content: notes }
                 ],
@@ -137,18 +171,36 @@ app.post("/generate-quiz", async (req, res) => {
         }
 
         const content = data.choices[0].message.content;
-        const lines = content.split('\n').filter(line => line.trim() !== '');
-        const questions = [];
+        
+        // Try to parse the JSON response from the AI
+        let questions;
+        try {
+            // Find JSON in the response (in case there's text before or after)
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                questions = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("No JSON array found in response");
+            }
+        } catch (e) {
+            console.error("❌ Failed to parse questions JSON:", e);
+            
+            // Fallback to the old parsing method if JSON parsing fails
+            const lines = content.split('\n').filter(line => line.trim() !== '');
+            questions = [];
 
-        for (let i = 0; i < lines.length; i += 2) {
-            const questionLine = lines[i];
-            const answerLine = lines[i + 1];
+            for (let i = 0; i < lines.length; i += 2) {
+                const questionLine = lines[i];
+                const answerLine = lines[i + 1];
 
-            const question = questionLine.replace(/^Question \d+:\s*/, '').trim();
-            const answer = answerLine.replace(/^Answer:\s*/, '').trim();
+                if (!questionLine || !answerLine) continue;
 
-            if (question && answer) {
-                questions.push({ question, answer });
+                const question = questionLine.replace(/^Question \d+:\s*/, '').trim();
+                const answer = answerLine.replace(/^Answer:\s*/, '').trim();
+
+                if (question && answer) {
+                    questions.push({ question, answer });
+                }
             }
         }
 
@@ -160,4 +212,10 @@ app.post("/generate-quiz", async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log("✅ Server is running on port 3000"));
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
