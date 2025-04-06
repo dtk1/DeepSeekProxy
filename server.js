@@ -227,5 +227,8 @@ app.get("/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+  });
+  
