@@ -224,29 +224,85 @@ app.post("/generate-quiz", async (req, res) => {
     }
 });
 
+app.post("/generate-flashcards", async (req, res) => {
+    try {
+      const { topic } = req.body;
+  
+      if (!topic) {
+        return res.status(400).json({ error: "Topic is required" });
+      }
+  
+      console.log("🧩 Generating flashcards for topic:", topic);
+  
+      const deepseekResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content: `You are an AI assistant that generates educational flashcards.
+  Provide exactly 5 question-answer pairs about the topic "${topic}".
+  Format:
+  Question 1: ...
+  Answer: ...
+  Question 2: ...
+  Answer: ...
+  Only return the list, no explanations.`,
+            },
+          ],
+          temperature: 0.5,
+        }),
+      });
+  
+      const text = await deepseekResponse.text();
+      console.log("🔹 Raw DeepSeek API Response:", text);
+  
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("❌ Failed to parse JSON from DeepSeek:", e);
+        return res.status(500).json({ error: "DeepSeek API returned invalid JSON" });
+      }
+  
+      if (!data.choices || !data.choices[0]?.message?.content) {
+        throw new Error("Invalid response from DeepSeek API");
+      }
+  
+      const content = data.choices[0].message.content;
+      const lines = content.split("\n").filter((line) => line.trim() !== "");
+      const flashcards = [];
+  
+      for (let i = 0; i < lines.length; i += 2) {
+        const questionLine = lines[i];
+        const answerLine = lines[i + 1];
+  
+        if (!questionLine || !answerLine) continue;
+  
+        const question = questionLine.replace(/^Question \d+:\s*/, "").trim();
+        const answer = answerLine.replace(/^Answer:\s*/, "").trim();
+  
+        if (question && answer) {
+          flashcards.push({ question, answer });
+        }
+      }
+  
+      res.json({ success: true, flashcards });
+    } catch (error) {
+      console.error("❌ Server error:", error);
+      res.status(500).json({ error: "Failed to generate flashcards" });
+    }
+  });
+  
+
 // Health check endpoint
 app.get("/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-app.post("/delete-collection", async (req, res) => {
-    try {
-        const collectionId = req.query.id;
-
-        if (!collectionId) {
-            return res.status(400).json({ error: "Collection ID is required" });
-        }
-
-        console.log(`🗑️ Deleting collection with ID: ${collectionId}`);
-
-        // TODO: Здесь ты добавишь удаление из базы данных
-        // Например: await CollectionModel.deleteOne({ _id: collectionId });
-
-        res.json({ success: true, message: `Collection ${collectionId} deleted` });
-    } catch (error) {
-        console.error("❌ Error deleting collection:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
 });
 
 
