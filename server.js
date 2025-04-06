@@ -5,13 +5,17 @@ import fetch from "node-fetch";
 
 dotenv.config();
 const app = express();
-app.use(cors({
-    origin: ['http://localhost:3000'],
+const corsOptions = {
+    origin: ['http://localhost:3000'], // Добавь сюда и прод домен, если нужно
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-  }));
+  };
   
-  app.options('*', cors());
+  // Применяем ко всем маршрутам
+  app.use(cors(corsOptions));
+  
+  // Обрабатываем preflight запросы OPTIONS
+  app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // ✅ Route for Flashcards
