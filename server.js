@@ -31,7 +31,13 @@ app.post("/deepseek", async (req, res) => {
                     {
                         role: "system",
                         content: `You are an AI assistant that extracts question-answer pairs from text.
-                                  The user will provide notes, and you must generate exactly ${numFlashcards} question-answer pairs in JSON format.`
+                        The user will provide notes, and you must generate exactly ${numFlashcards} question-answer pairs.
+                        Format the response like:
+                        Question 1: ...
+                        Answer: ...
+                        Question 2: ...
+                        Answer: ...
+                        Only return the list, no explanations.`
                     },
                     { role: "user", content: notes }
                 ],
@@ -54,23 +60,21 @@ app.post("/deepseek", async (req, res) => {
             throw new Error("Invalid response from DeepSeek API");
         }
 
-        let parsedResponse;
-        try {
-            parsedResponse = JSON.parse(data.choices[0].message.content || "{}");
-        } catch (parseError) {
-            console.error("❌ JSON Parsing Error:", parseError);
-            return res.status(500).json({ error: "Invalid JSON from DeepSeek API" });
-        }
+        const content = data.choices[0].message.content;
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        const flashcards = [];
 
-        if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-            console.error("❌ DeepSeek API response does not contain a valid questions array:", parsedResponse);
-            return res.status(500).json({ error: "DeepSeek API did not return a valid questions array" });
-        }
+        for (let i = 0; i < lines.length; i += 2) {
+            const questionLine = lines[i];
+            const answerLine = lines[i + 1];
 
-        const flashcards = parsedResponse.questions.map(q => ({
-            question: q.question,
-            answer: q.answer
-        }));
+            const question = questionLine.replace(/^Question \d+:\s*/, '').trim();
+            const answer = answerLine.replace(/^Answer:\s*/, '').trim();
+
+            if (question && answer) {
+                flashcards.push({ question, answer });
+            }
+        }
 
         res.json({ success: true, flashcards });
 
@@ -103,7 +107,13 @@ app.post("/generate-quiz", async (req, res) => {
                     {
                         role: "system",
                         content: `You are an AI assistant that extracts question-answer pairs from text.
-                                  The user will provide educational notes, and you must generate exactly ${numQuestions} question-answer pairs in JSON format.`
+                        The user will provide educational notes, and you must generate exactly ${numQuestions} question-answer pairs.
+                        Format the response like:
+                        Question 1: ...
+                        Answer: ...
+                        Question 2: ...
+                        Answer: ...
+                        Only return the list, no explanations.`
                     },
                     { role: "user", content: notes }
                 ],
@@ -126,23 +136,21 @@ app.post("/generate-quiz", async (req, res) => {
             throw new Error("Invalid response from DeepSeek API");
         }
 
-        let parsedResponse;
-        try {
-            parsedResponse = JSON.parse(data.choices[0].message.content || "{}");
-        } catch (parseError) {
-            console.error("❌ JSON Parsing Error:", parseError);
-            return res.status(500).json({ error: "Invalid JSON from DeepSeek API" });
-        }
+        const content = data.choices[0].message.content;
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        const questions = [];
 
-        if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-            console.error("❌ DeepSeek API response does not contain a valid questions array:", parsedResponse);
-            return res.status(500).json({ error: "DeepSeek API did not return a valid questions array" });
-        }
+        for (let i = 0; i < lines.length; i += 2) {
+            const questionLine = lines[i];
+            const answerLine = lines[i + 1];
 
-        const questions = parsedResponse.questions.map(q => ({
-            question: q.question,
-            answer: q.answer
-        }));
+            const question = questionLine.replace(/^Question \d+:\s*/, '').trim();
+            const answer = answerLine.replace(/^Answer:\s*/, '').trim();
+
+            if (question && answer) {
+                questions.push({ question, answer });
+            }
+        }
 
         res.json({ success: true, questions });
 
