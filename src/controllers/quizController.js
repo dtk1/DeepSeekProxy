@@ -1,14 +1,15 @@
-import DeepSeekClient from "../utils/deepSeekClient.js";
+import DeepSeekClient from '../utils/deepSeekClient.js';
 
-export const generateQuiz = async (req, res) => {
+export const generateQuizFromTopic = async (req, res) => {
   try {
-    const { notes, numQuestions, quizType } = req.body;
-    if (!notes || typeof numQuestions !== "number" || numQuestions <= 0) {
-      return res.status(400).json({ error: "Invalid input" });
+    const { topic, numQuestions = 5, quizType = "multiple-choice" } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: "Topic is required" });
     }
 
-    let prompt = `You are an AI assistant that creates quiz questions from educational text.
-The user will provide notes, and you must generate exactly ${numQuestions} questions.`;
+    let prompt = `You are an AI assistant that creates quiz questions on the topic "${topic}".
+Generate exactly ${numQuestions} questions.`;
 
     if (quizType === "multiple-choice") {
       prompt += `
@@ -53,7 +54,7 @@ Only return valid JSON, no explanations.`;
     const questions = JSON.parse(jsonMatch[0]);
     res.json({ success: true, questions });
   } catch (error) {
-    console.error("❌ Quiz generation error:", error);
+    console.error("❌ Quiz generation from topic error:", error);
     res.status(500).json({ error: error.message });
   }
 };
