@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 const DeepSeekClient = async (prompt) => {
   const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
@@ -9,8 +7,17 @@ const DeepSeekClient = async (prompt) => {
     },
     body: JSON.stringify({
       model: "deepseek-chat",
-      messages: [{ role: "system", content: prompt }],
-      temperature: 0.5,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI assistant that generates quiz questions based on user-provided content. Return only valid JSON without explanations.",
+        },
+        {
+          role: "user",
+          content: prompt, // теперь тут только notes + инструкции по типу квиза
+        },
+      ],
     }),
   });
 
@@ -29,5 +36,3 @@ const DeepSeekClient = async (prompt) => {
 
   return data.choices[0].message.content;
 };
-
-export default DeepSeekClient;

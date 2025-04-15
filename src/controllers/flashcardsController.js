@@ -18,6 +18,7 @@ Answer: ...
 Only return the list, no explanations.`;
 
     const content = await DeepSeekClient(prompt);
+    console.log("🔍 Prompt to DeepSeek:", prompt);
 
     const lines = content.split('\n').filter(line => line.trim() !== '');
     const flashcards = [];
